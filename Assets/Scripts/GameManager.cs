@@ -7,34 +7,33 @@ public class GameManager : MonoBehaviour
 {
     public GameObject[] spots;
     public Camera cam;
+    public GameObject startScreen;
+    public GameObject inGameScreen;
+    public GameObject endScreen;
+
     int[][] board;
-    bool isBlackTurn = true;
+    bool isBlackTurn;
+    bool isInGame = false;
     // Start is called before the first frame update
     void Start()
     {
-        board = new int[19][];
-        for(int i =0; i < board.Length; i++)
-        {
-            board[i] = new int[19];
-        }
-        GenerateBoard(board);
     }
-
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetMouseButtonDown(0))
+        if (!isInGame) return;
+        if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition),Vector2.zero);
+            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
             if (hit)
             {
                 GameObject obj = hit.transform.gameObject;
-                if (obj.tag == "Spot" && 
+                if (obj.tag == "Spot" &&
                     !obj.transform.GetChild(0).gameObject.activeSelf &&
                     !obj.transform.GetChild(1).gameObject.activeSelf)
                 {
                     int index = -1;
-                    for(int i=0; i<spots.Length;i++)
+                    for (int i = 0; i < spots.Length; i++)
                     {
                         if (spots[i].Equals(obj))
                         {
@@ -44,7 +43,7 @@ public class GameManager : MonoBehaviour
                     }
                     int row = index / 19;
                     int col = index % 19;
-                    if(isBlackTurn)
+                    if (isBlackTurn)
                     {
                         board[row][col] = 0;
                         if (IsProhibitted(board, row, col))
@@ -53,12 +52,16 @@ public class GameManager : MonoBehaviour
                             return;
                         }
                         obj.transform.GetChild(0).gameObject.SetActive(true);
+                        inGameScreen.transform.GetChild(0).gameObject.SetActive(false);
+                        inGameScreen.transform.GetChild(1).gameObject.SetActive(true);
                         isBlackTurn = false;
                     }
                     else
                     {
                         board[row][col] = 1;
                         obj.transform.GetChild(1).gameObject.SetActive(true);
+                        inGameScreen.transform.GetChild(1).gameObject.SetActive(false);
+                        inGameScreen.transform.GetChild(0).gameObject.SetActive(true);
                         isBlackTurn = true;
                     }
                     if (IsGameOver(board, row, col, isBlackTurn ? 1 : 0))
@@ -69,10 +72,47 @@ public class GameManager : MonoBehaviour
                     {
                         if (IsBoardFull(board))
                         {
+                            inGameScreen.SetActive(false);
+                            endScreen.SetActive(true);
+                            for(int i=1;i<endScreen.transform.childCount;i++)
+                            {
+                                endScreen.transform.GetChild(i).gameObject.SetActive(false);
+                            }
+                            endScreen.transform.GetChild(3).gameObject.SetActive(true);
                             Debug.Log("Regame");
                         }
                     }
                 }
+            }
+        }
+    }
+
+    public void OnGameStartButtonClick()
+    {
+        startScreen.SetActive(false);
+        inGameScreen.SetActive(true);
+        inGameScreen.transform.GetChild(0).gameObject.SetActive(true);
+        inGameScreen.transform.GetChild(1).gameObject.SetActive(false);
+        isInGame = true;
+        isBlackTurn = true;
+        board = new int[19][];
+        for (int i = 0; i < board.Length; i++)
+        {
+            board[i] = new int[19];
+        }
+        GenerateBoard(board);
+    }
+
+    public void OnGoToMainButtonClick()
+    {
+        endScreen.SetActive(false);
+        startScreen.SetActive(true);
+        isInGame = false;
+        for (int i = 0; i < spots.Length; i++)
+        {
+            for (int j = 0; j < spots[i].transform.childCount; j++)
+            {
+                spots[i].transform.GetChild(j).gameObject.SetActive(false);
             }
         }
     }
@@ -93,13 +133,19 @@ public class GameManager : MonoBehaviour
     }
     private void GameOver(bool isBlackWin)
     {
-        if(isBlackWin)
+        inGameScreen.SetActive(false);
+        endScreen.SetActive(true);
+        for (int i = 1; i < endScreen.transform.childCount; i++)
         {
-            Debug.Log("black win");
+            endScreen.transform.GetChild(i).gameObject.SetActive(false);
+        }
+        if (isBlackWin)
+        {
+            endScreen.transform.GetChild(1).gameObject.SetActive(true);
         }
         else
         {
-            Debug.Log("white win");
+            endScreen.transform.GetChild(2).gameObject.SetActive(true);
         }
     }
     private bool IsProhibitted(int[][] board, int row, int col)
